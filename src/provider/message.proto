@@ -44,8 +44,8 @@ message ChatMessage {
   string projectPath = 5;
   Model model = 7;
   string requestId = 9;
-  string summary = 11; // 或许是空的，描述会话做了什么事情，但是不是标题 或许可以当作额外的设定来用
-  string conversationId = 15; // 又来一个uuid
+  string summary = 11;
+  string conversationId = 15;
 }
 
 message ResMessage {

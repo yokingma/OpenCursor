@@ -3,12 +3,10 @@ import { getConfig } from '../config.js';
 import protobuf from 'protobufjs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { type Root } from 'protobufjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
 const root = protobuf.loadSync(join(__dirname, 'message.proto'));
 
 const defaultChecksum = getConfig('CURSOR_CHECKSUM');
@@ -21,7 +19,6 @@ interface OpenAIChatMessage {
 interface OpenAIRequest {
   model: string;
   messages: OpenAIChatMessage[];
-  stream: boolean;
 }
 
 interface CursorUserChatMessage {
@@ -45,18 +42,24 @@ interface CursorTokenPayload {
   [key: string]: unknown;
 }
 
-export async function fetchCursor(cookie: string, data: OpenAIRequest) {
+export async function fetchCursor(cookie: string, data: OpenAIRequest, onMessage?: (message: Record<string, unknown>) => void) {
   const url = getConfig('CURSOR_URL');
 
-  const checksum = genChecksum(cookie);
+  let token = cookie;
 
+  // process cookie for token
+  if (cookie.includes('%3A%3A')) {
+    token = cookie.split('%3A%3A')[1];
+  }
+
+  const checksum = genChecksum(token);
 
   const protoBytes = await convertRequest(data);
 
   const options: RequestInit = {
     method: 'POST',
     headers: {
-      'authorization': `Bearer ${cookie}`,
+      'authorization': `Bearer ${token}`,
       'content-type': 'application/connect+proto',
       'connect-accept-encoding': 'gzip,br',
       'connect-protocol-version': '1',
@@ -66,11 +69,8 @@ export async function fetchCursor(cookie: string, data: OpenAIRequest) {
       'x-cursor-timezone': 'Asia/Shanghai',
       'host': 'api2.cursor.sh'
     },
-    // Must be Uint32Array
     body: protoBytes,
   };
-
-  console.log(options.headers);
 
   const res = await fetch(url, options);
 
@@ -79,15 +79,44 @@ export async function fetchCursor(cookie: string, data: OpenAIRequest) {
     throw new Error('Reader not found');
   }
 
-  const chunks: ArrayBufferLike[] = [];
+  const id = `chatcmpl-${genUUID().replace(/-/g, '')}`;
+  const created = Date.now();
+
+  const chunks: string[] = [];
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     const { done, value } = await reader.read();
-    if (done) break;
-    console.log('response', bytesToString(value));
-    chunks.push(value);
+    if (done) {
+      onMessage?.({
+        id,
+        object: 'chat.completion.chunk',
+        created,
+        model: data.model,
+        choices: [{
+          index: 0,
+          delta: {},
+        }],
+        finish_reason: 'stop',
+      });
+      break;
+    }
+    const msg = bytesToString(value);
+    onMessage?.({
+      id,
+      object: 'chat.completion.chunk',
+      created,
+      model: data.model,
+      choices: [{
+        index: 0,
+        delta: {
+          content: msg,
+        },
+      }],
+      finish_reason: null,
+    });
+    chunks.push(msg);
   }
-  return;
+  return chunks;
 }
 
 async function convertRequest(request: OpenAIRequest) {
@@ -102,26 +131,29 @@ async function convertRequest(request: OpenAIRequest) {
     messages: formattedMessages,
     instructions: { instruction: '' },
     projectPath: '/path/to/project',
-    model: { name: model.slice(7), empty: '' },
-    summary: '',
+    model: { name: model, empty: '' },
     requestId: genUUID(),
+    summary: '',
     conversationId: genUUID(),
   };
 
-  const ChatMessage = (root as Root).lookupType('ChatMessage');
+  const ChatMessage = root.lookupType('cursor.ChatMessage');
 
   const errMsg = ChatMessage.verify(cursorMessages);
   if (errMsg) {
     throw new Error(errMsg);
   }
 
-  const protoBytes = ChatMessage.encode(cursorMessages).finish();
+  const message = ChatMessage.create(cursorMessages);
+  const protoBytes = ChatMessage.encode(message).finish();
 
   const header = int32ToBytes(0, protoBytes.byteLength);
 
   const buffer = Buffer.concat([header, protoBytes]);
 
-  return Uint32Array.from(buffer);
+  const hexString = (buffer.toString('hex')).toUpperCase();
+
+  return Buffer.from(hexString, 'hex');
 }
 
 /**
@@ -164,14 +196,42 @@ function int32ToBytes(magic: number, num: number) {
   return result;
 }
 
-export function bytesToInt32(buffer: Buffer) {
-  if (buffer.length !== 4) {
-    throw new Error('Buffer must be exactly 4 bytes long');
+/**
+ * decode message bytes to string
+ */
+export function bytesToString(buffer: ArrayBufferLike) {
+  try {
+    const hex = Buffer.from(buffer).toString('hex');
+
+    let offset = 0;
+    const results: string[] = [];
+
+    while (offset < hex.length) {
+      if (offset + 10 > hex.length) break;
+
+      const dataLength = parseInt(hex.slice(offset, offset + 10), 16);
+      offset += 10;
+
+      if (offset + dataLength * 2 > hex.length) break;
+
+      const messageHex = hex.slice(offset, offset + dataLength * 2);
+      offset += dataLength * 2;
+
+      const messageBuffer = Buffer.from(messageHex, 'hex');
+      const message = root.lookupType('cursor.ResMessage').decode(messageBuffer) as unknown as { msg: string };
+      if (message.msg) results.push(message.msg);
+    }
+    return results.join('');
+  } catch (err) {
+    console.error('Error decoding message:', err);
+    return decodeErrorBytes(buffer);
   }
-  return buffer.readUInt32BE(0);
 }
 
-export function bytesToString(buffer: ArrayBufferLike, offset = 5) {
-  const buf = Buffer.from(buffer.slice(offset));
+/**
+ * decode error bytes
+ */
+export function decodeErrorBytes(buffer: ArrayBufferLike) {
+  const buf = Buffer.from(buffer.slice(5));
   return buf.toString('utf-8');
 }
