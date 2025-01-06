@@ -1,0 +1,15 @@
+logs/
+node_modules/
+coverage/
+dist/
+.idea/
+run/
+
+.DS_Store
+
+.tsbuildinfo
+.tsbuildinfo.*
+
+package-lock.json
+
+npm-debug.log
