@@ -1,8 +1,9 @@
-import { calcHex, genUUID } from '../core/basic.js';
+import { calcHex, genUUID } from '../utils.js';
 import { getConfig } from '../config.js';
 import protobuf from 'protobufjs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { OpenAIRequest } from '../interface.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -10,16 +11,6 @@ const __dirname = dirname(__filename);
 const root = protobuf.loadSync(join(__dirname, 'message.proto'));
 
 const defaultChecksum = getConfig('CURSOR_CHECKSUM');
-
-interface OpenAIChatMessage {
-  role: string;
-  content: string;
-}
-
-interface OpenAIRequest {
-  model: string;
-  messages: OpenAIChatMessage[];
-}
 
 interface CursorUserChatMessage {
   messageId: string;
@@ -116,7 +107,18 @@ export async function fetchCursor(cookie: string, data: OpenAIRequest, onMessage
     });
     chunks.push(msg);
   }
-  return chunks;
+  return {
+    id,
+    object: 'chat.completion',
+    created,
+    model: data.model,
+    choices: [{
+      index: 0,
+      message: {
+        content: chunks.join(''),
+      },
+    }],
+  };
 }
 
 async function convertRequest(request: OpenAIRequest) {

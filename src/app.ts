@@ -4,11 +4,16 @@ import bodyParser from '@koa/bodyparser';
 import { fetchCursor } from './provider/cursor.js';
 import Router from '@koa/router';
 import { tokenMiddleware } from './middleware.js';
-
-const app = new Koa();
+import { getConfig } from './config.js';
+import { logger } from './logger.js';
+import { validateRequest } from './validator.js';
 const router = new Router({
   prefix: '/v1'
 });
+
+const app = new Koa();
+
+const port = getConfig('PORT', '3000');
 
 app.use(cors({
   origin: '*'
@@ -18,27 +23,32 @@ app.use(bodyParser());
 
 app.use(router.routes()).use(router.allowedMethods());
 
+router.use(tokenMiddleware());
+
 // Error handler
-app.use(async (ctx, next) => {
+router.use(async (ctx, next) => {
   try {
     await next();
   } catch(err) {
+    const message = (err as Error).message;
+    logger.error(message);
+    ctx.body = {
+      message
+    };
     ctx.res.statusCode = 422;
-    ctx.body = err;
   }
 });
 
-router.use(tokenMiddleware());
-
 router.post('/chat/completions', async (ctx) => {
-  const { model, messages } = ctx.request.body;
+  const data = validateRequest(ctx);
 
-  if (!model || !messages) {
-    ctx.body = {
-      error: 'Invalid request',
-      message: 'model and messages are required',
-    };
-    ctx.res.statusCode = 422;
+  const { model, messages, stream = false } = data;
+
+  const token = ctx.state.token as string;
+
+  if (!stream) {
+    const response = await fetchCursor(token, { model, messages });
+    ctx.body = response;
     return;
   }
 
@@ -48,14 +58,13 @@ router.post('/chat/completions', async (ctx) => {
   ctx.res.setHeader('Connection', 'keep-alive');
   ctx.res.statusCode = 200;
 
-  const token = ctx.state.token as string;
   await fetchCursor(token, { model, messages }, (msg) => {
-    const eventData = `data:${JSON.stringify({ data: msg })}\n\n`;
+    const eventData = `${JSON.stringify({ data: msg })}\n\n`;
     ctx.res.write(eventData, 'utf-8');
   });
   ctx.res.end();
 });
 
-app.listen(3000, () => {
-  console.log('Server is running on port 3000');
+app.listen(port, () => {
+  logger.info(`Server is running on port ${port}`);
 });

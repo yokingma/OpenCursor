@@ -1,5 +1,6 @@
 import { createHash } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from './logger.js';
 
 export function calcHex(str: string): string {
   try {
@@ -7,7 +8,7 @@ export function calcHex(str: string): string {
     hash.update(str);
     return hash.digest('hex');
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     return '-1';
   }
 }

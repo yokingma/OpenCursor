@@ -1,7 +1,7 @@
 {
-  "name": "cursor",
+  "name": "open-cursor-api",
   "version": "1.0.0",
-  "description": "Cursor",
+  "description": "OpenCursor API",
   "type": "module",
   "main": "./dist/app.js",
   "engines": {
@@ -20,6 +20,7 @@
     "@koa/router": "^13.1.0",
     "dotenv": "^16.4.5",
     "fetch-sse": "^1.1.0",
+    "joi": "^17.13.3",
     "koa": "^2.15.3",
     "protobufjs": "^7.4.0",
     "uuid": "^11.0.3",
