@@ -2,6 +2,9 @@
   "name": "open-cursor-api",
   "version": "1.0.0",
   "description": "OpenCursor API",
+  "private": false,
+  "author": "zac_ma",
+  "repository": "https://github.com/yokingma/OpenCursor.git",
   "type": "module",
   "main": "./dist/app.js",
   "engines": {
