@@ -59,7 +59,7 @@ router.post('/chat/completions', async (ctx) => {
   ctx.res.statusCode = 200;
 
   await fetchCursor(token, { model, messages }, (msg) => {
-    const eventData = `${JSON.stringify({ data: msg })}\n\n`;
+    const eventData = `data: ${JSON.stringify({ data: msg })}\n\n`;
     ctx.res.write(eventData, 'utf-8');
   });
   ctx.res.end();

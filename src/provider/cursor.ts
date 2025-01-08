@@ -4,9 +4,9 @@ import protobuf from 'protobufjs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { OpenAIRequest } from '../interface.js';
+import { logger } from '../logger.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const root = protobuf.loadSync(join(__dirname, 'message.proto'));
 
@@ -225,7 +225,7 @@ export function bytesToString(buffer: ArrayBufferLike) {
     }
     return results.join('');
   } catch (err) {
-    console.error('Error decoding message:', err);
+    logger.error('Error decoding message:', err);
     return decodeErrorBytes(buffer);
   }
 }

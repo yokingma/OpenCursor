@@ -1,6 +1,5 @@
 syntax = "proto3";
 package cursor;
-option node_package = "./cursor";
 
 message ChatMessage {
   message FileContent {
