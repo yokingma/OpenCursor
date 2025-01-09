@@ -71,7 +71,7 @@ export async function fetchCursor(cookie: string, data: OpenAIRequest, onMessage
   }
 
   const id = `chatcmpl-${genUUID().replace(/-/g, '')}`;
-  const created = Date.now();
+  const created = Math.floor(Date.now() / 1000);
 
   const chunks: string[] = [];
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -81,7 +81,7 @@ export async function fetchCursor(cookie: string, data: OpenAIRequest, onMessage
       onMessage?.({
         id,
         object: 'chat.completion.chunk',
-        created,
+        created: Math.floor(Date.now() / 1000),
         model: data.model,
         choices: [{
           index: 0,
@@ -95,7 +95,7 @@ export async function fetchCursor(cookie: string, data: OpenAIRequest, onMessage
     onMessage?.({
       id,
       object: 'chat.completion.chunk',
-      created,
+      created: Math.floor(Date.now() / 1000),
       model: data.model,
       choices: [{
         index: 0,
