@@ -18,7 +18,7 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/.env ./
 COPY --from=build /app/package.json ./
 
-RUN npm ci --production && \
+RUN npm install --production && \
     npm cache clean --force
 
 EXPOSE 3000
