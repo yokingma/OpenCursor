@@ -11,7 +11,7 @@ const schema = Joi.object<OpenAIRequest>({
   messages: Joi.array().items(
     Joi.object({
       role: roleSchema,
-      content: Joi.string().required(),
+      content: Joi.string().required().allow(''),
     })
   ).required(),
   response_format: Joi.object({
