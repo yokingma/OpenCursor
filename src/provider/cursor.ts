@@ -124,7 +124,12 @@ export async function fetchCursor(cookie: string, data: OpenAIRequest, onMessage
 async function convertRequest(request: OpenAIRequest) {
   const { messages, model, system } = request;
   const formattedMessages = messages.map((message) => {
-    const content = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);
+    let content = '';
+    if (Array.isArray(message.content)) {
+      content = message.content.map((item) => item.text ?? '').join('');
+    } else {
+      content = message.content;
+    }
     return {
       messageId: genUUID(),
       role: message.role === 'user' ? 1 : 2,
