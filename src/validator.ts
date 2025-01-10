@@ -19,7 +19,7 @@ const schema = Joi.object<OpenAIRequest>({
     type: Joi.string().equal('json_object', 'json_schema', 'text').required(),
     schema: Joi.object().optional(),
   }).optional(),
-});
+}).unknown(true);
 
 export function validateRequest(ctx: Context) {
   const { error, value } = schema.validate(ctx.request.body);
