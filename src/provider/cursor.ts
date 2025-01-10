@@ -126,7 +126,15 @@ async function convertRequest(request: OpenAIRequest) {
   const formattedMessages = messages.map((message) => {
     let content = '';
     if (Array.isArray(message.content)) {
-      content = message.content.map((item) => item.text ?? '').join('');
+      content = message.content.map((item) => {
+        if (item.text) {
+          return item.text;
+        }
+        if (item.image_url?.url) {
+          return `![image](${item.image_url.url})`;
+        }
+        return '';
+      }).join('');
     } else {
       content = message.content;
     }

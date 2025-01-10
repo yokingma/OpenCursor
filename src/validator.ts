@@ -15,7 +15,7 @@ const imageMessageContentSchema = Joi.array().items(
     image_url: Joi.when('type', {
       is: 'image_url',
       then: Joi.object({
-        url: Joi.string().required()
+        url: Joi.string().required().allow('')
       }).required(),
       otherwise: Joi.forbidden()
     })
