@@ -19,7 +19,10 @@ app.use(cors({
   origin: '*'
 }));
 
-app.use(bodyParser());
+app.use(bodyParser({
+  jsonLimit: '50mb',
+  encoding: 'utf-8'
+}));
 
 app.use(router.routes()).use(router.allowedMethods());
 
