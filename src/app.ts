@@ -42,12 +42,12 @@ router.use(async (ctx, next) => {
 router.post('/chat/completions', async (ctx) => {
   const data = validateRequest(ctx);
 
-  const { model, messages, stream = false } = data;
+  const { model, messages, system, stream = false } = data;
 
   const token = ctx.state.token as string;
 
   if (!stream) {
-    const response = await fetchCursor(token, { model, messages });
+    const response = await fetchCursor(token, { model, messages, system });
     ctx.body = response;
     return;
   }
@@ -58,7 +58,7 @@ router.post('/chat/completions', async (ctx) => {
   ctx.res.setHeader('Connection', 'keep-alive');
   ctx.res.statusCode = 200;
 
-  await fetchCursor(token, { model, messages }, (msg) => {
+  await fetchCursor(token, { model, messages, system }, (msg) => {
     const eventData = `data: ${JSON.stringify(msg)}\n\n`;
     ctx.res.write(eventData, 'utf-8');
   });

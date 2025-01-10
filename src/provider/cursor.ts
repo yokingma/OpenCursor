@@ -122,7 +122,7 @@ export async function fetchCursor(cookie: string, data: OpenAIRequest, onMessage
 }
 
 async function convertRequest(request: OpenAIRequest) {
-  const { messages, model } = request;
+  const { messages, model, system } = request;
   const formattedMessages = messages.map((message) => ({
     messageId: genUUID(),
     role: message.role === 'user' ? 1 : 2,
@@ -131,7 +131,7 @@ async function convertRequest(request: OpenAIRequest) {
 
   const cursorMessages: CursorChatMessages = {
     messages: formattedMessages,
-    instructions: { instruction: '' },
+    instructions: { instruction: system ?? '' },
     projectPath: '/path/to/project',
     model: { name: model, empty: '' },
     requestId: genUUID(),
