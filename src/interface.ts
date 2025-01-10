@@ -8,6 +8,7 @@ export interface OpenAIRequest {
   messages: OpenAIChatMessage[];
   system?: string;
   stream?: boolean;
+  temperature?: number;
   response_format?: {
     type: 'json_object' | 'json_schema' | 'text';
     schema?: object;

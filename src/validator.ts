@@ -8,6 +8,7 @@ const schema = Joi.object<OpenAIRequest>({
   stream: Joi.boolean().default(false).optional(),
   model: Joi.string().required(),
   system: Joi.string().optional(),
+  temperature: Joi.number().optional(),
   messages: Joi.array().items(
     Joi.object({
       role: roleSchema,
