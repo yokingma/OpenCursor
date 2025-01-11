@@ -218,15 +218,15 @@ function int32ToBytes(magic: number, num: number) {
  * decode message bytes to string
  */
 export function bytesToString(buffer: ArrayBufferLike) {
+  const ErrorStartHex = '02000001';
+  const hex = Buffer.from(buffer).toString('hex');
+
+  if (hex.startsWith(ErrorStartHex)) {
+    const error = decodeErrorBytes(buffer);
+    logger.error('Cursor Error message:', error);
+    throw new Error(error);
+  }
   try {
-    const ErrorStartHex = '0200000192';
-    const hex = Buffer.from(buffer).toString('hex');
-
-    if (hex.startsWith(ErrorStartHex)) {
-      const error = decodeErrorBytes(buffer);
-      throw new Error(error);
-    }
-
     let offset = 0;
     const results: string[] = [];
 
