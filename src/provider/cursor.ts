@@ -219,7 +219,13 @@ function int32ToBytes(magic: number, num: number) {
  */
 export function bytesToString(buffer: ArrayBufferLike) {
   try {
+    const ErrorStartHex = '0200000192';
     const hex = Buffer.from(buffer).toString('hex');
+
+    if (hex.startsWith(ErrorStartHex)) {
+      const error = decodeErrorBytes(buffer);
+      throw new Error(error);
+    }
 
     let offset = 0;
     const results: string[] = [];
@@ -240,9 +246,9 @@ export function bytesToString(buffer: ArrayBufferLike) {
       if (message.msg) results.push(message.msg);
     }
     return results.join('');
-  } catch (err) {
+  } catch (err: unknown) {
     logger.error('Error decoding message:', err);
-    return decodeErrorBytes(buffer);
+    throw err;
   }
 }
 
