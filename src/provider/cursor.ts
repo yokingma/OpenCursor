@@ -196,7 +196,6 @@ export function genChecksum(token: string): string {
     now.setMinutes(30 * Math.floor(now.getMinutes() / 30), 0, 0);
     const timestamp = Math.floor(now.getTime() / 1e6);
 
-    console.log('timestamp', timestamp);
   
     const timestampBuffer = Buffer.alloc(6);
     timestampBuffer.writeUInt8((timestamp >> 8) & 0xff, 0);
@@ -212,7 +211,6 @@ export function genChecksum(token: string): string {
     const hex2 = calcHex(token);
     checksum = `${Buffer.from(timestampBuffer).toString('base64url')}${hex1}/${hex2}`;
   }
-  console.log('checksum', checksum);
   return checksum;
 }
 
