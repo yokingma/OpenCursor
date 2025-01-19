@@ -47,6 +47,9 @@ router.post('/chat/completions', async (ctx) => {
 
   const { model, messages, system, stream = false } = data;
 
+  const systemMessage = messages.find((msg) => msg.role === 'system');
+  console.log('systemMessage', systemMessage?.content);
+
   const token = ctx.state.token as string;
 
   if (!stream) {

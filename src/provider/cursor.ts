@@ -28,11 +28,6 @@ interface CursorChatMessages {
   conversationId: string;
 }
 
-interface CursorTokenPayload {
-  time: string;
-  [key: string]: unknown;
-}
-
 export async function fetchCursor(cookie: string, data: OpenAIRequest, onMessage?: (message: Record<string, unknown>) => void) {
   const url = getConfig('CURSOR_URL');
 
@@ -41,9 +36,11 @@ export async function fetchCursor(cookie: string, data: OpenAIRequest, onMessage
   // process cookie for token
   if (cookie.includes('%3A%3A')) {
     token = cookie.split('%3A%3A')[1];
+  } else if (cookie.includes('::')) {
+    token = cookie.split('::')[1];
   }
 
-  const checksum = genChecksum(token);
+  const checksum = genChecksum(cookie);
 
   const protoBytes = await convertRequest(data);
 
@@ -184,6 +181,8 @@ export function genChecksum(token: string): string {
   if (!checksum) {
     const salt = token.split('.');
 
+    console.log('salt', salt);
+
     const calc = (data: Buffer) => {
         let t = 165;
         for (let i = 0; i < data.length; i++) {
@@ -192,18 +191,28 @@ export function genChecksum(token: string): string {
         }
     };
 
-    const json = Buffer.from(salt[1], 'base64').toString('utf-8');
-    const obj = JSON.parse(json) as CursorTokenPayload;
-    const timestamp = Math.floor(new Date(parseInt(obj.time, 10)).getTime() / 1000);
+    // 获取当前时间并按30分钟取整
+    const now = new Date();
+    now.setMinutes(30 * Math.floor(now.getMinutes() / 30), 0, 0);
+    const timestamp = Math.floor(now.getTime() / 1e6);
+
+    console.log('timestamp', timestamp);
+  
     const timestampBuffer = Buffer.alloc(6);
-    timestampBuffer.writeUIntBE(timestamp, 0, 6);
+    timestampBuffer.writeUInt8((timestamp >> 8) & 0xff, 0);
+    timestampBuffer.writeUInt8(timestamp & 0xff, 1);
+    timestampBuffer.writeUInt8((timestamp >> 24) & 0xff, 2);
+    timestampBuffer.writeUInt8((timestamp >> 16) & 0xff, 3);
+    timestampBuffer.writeUInt8((timestamp >> 8) & 0xff, 4);
+    timestampBuffer.writeUInt8(timestamp & 0xff, 5);
 
     calc(timestampBuffer);
 
     const hex1 = calcHex(salt[1]);
     const hex2 = calcHex(token);
-    checksum = `${timestampBuffer.toString('hex')}${hex1}/${hex2}`;
+    checksum = `${Buffer.from(timestampBuffer).toString('base64url')}${hex1}/${hex2}`;
   }
+  console.log('checksum', checksum);
   return checksum;
 }
 

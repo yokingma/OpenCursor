@@ -4,7 +4,7 @@ import { logger } from './logger.js';
 
 export function calcHex(str: string): string {
   try {
-    const hash = createHash('sha1');
+    const hash = createHash('sha256');
     hash.update(str);
     return hash.digest('hex');
   } catch (error) {
